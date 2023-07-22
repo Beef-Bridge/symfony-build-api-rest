@@ -1,0 +1,45 @@
+version: '3'
+
+services:
+  db:
+    image: mysql
+    container_name: db_sf_api_rest
+    restart: always
+    volumes:
+      - db-data:/var/lib/mysql
+    environment:
+      MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+    networks:
+      - dev
+
+  phpmyadmin:
+    image: phpmyadmin
+    container_name: pma_sf_api_rest
+    restart: always
+    depends_on:
+      - db
+    ports:
+      - 8082:80
+    environment:
+      PMA_HOST: db
+    networks:
+      - dev
+    
+  www:
+    build: docker
+    container_name: www_sf_api_rest
+    restart: always
+    ports:
+      - 8002:80
+    volumes:
+      - ./docker/vhosts:/etc/apache2/sites-enabled
+      - ./docker/configs/php.ini:/usr/local/etc/php/php.ini
+      - ./project:/var/www
+    networks:
+      - dev
+
+networks:
+  dev:
+
+volumes:
+  db-data:
