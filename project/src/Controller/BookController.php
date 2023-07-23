@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Entity\Book;
 use App\Repository\BookRepository;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
@@ -17,5 +18,14 @@ class BookController extends AbstractController
         $bookList = $bookRepository->findAll();
         $jsonBookList = $serializer->serialize($bookList, 'json');
         return new JsonResponse($jsonBookList, Response::HTTP_OK, [], true);
+    }
+
+    #[Route('/api/books/{id}', name: 'api_detail_book_get', methods: ['GET'])]
+    public function getDetailBook(
+        Book $book,
+        SerializerInterface $serializer
+    ): JsonResponse {
+        $jsonBook = $serializer->serialize($book, 'json');
+        return new JsonResponse($jsonBook, Response::HTTP_OK, ['accept' => 'json'], true);
     }
 }
