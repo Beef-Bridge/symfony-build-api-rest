@@ -30,18 +30,20 @@ class BookController extends AbstractController
         BookRepository $bookRepository,
         SerializerInterface $serializer,
         Request $request,
-        TagAwareCacheInterface $cachePool
+        TagAwareCacheInterface $cache
     ): JsonResponse {
         $page = $request->get('page', 1);
         $limit = $request->get('limit', 3);
 
         $idCache = "getAllBooks-" . $page . "-" . $limit;
-        $bookList = $cachePool->get($idCache, function (ItemInterface $item) use ($bookRepository, $page, $limit) {
-            $item->tag("booksCache");
-            return $bookRepository->findAllWithPagination($page, $limit);
-        });
+        $jsonBookList = $cache->get(
+            $idCache,
+            function (ItemInterface $item) use ($bookRepository, $page, $limit, $serializer) {
+                $item->tag("booksCache");
+                $bookList = $bookRepository->findAllWithPagination($page, $limit);
+                return $serializer->serialize($bookList, 'json', ['groups' => 'getBooks']);
+            });
 
-        $jsonBookList = $serializer->serialize($bookList, 'json', ['groups' => 'getBooks']);
         return new JsonResponse($jsonBookList, Response::HTTP_OK, [], true);
     }
 
@@ -54,9 +56,18 @@ class BookController extends AbstractController
         return new JsonResponse($jsonBook, Response::HTTP_OK, ['accept' => 'json'], true);
     }
 
+    /**
+     * @throws InvalidArgumentException
+     */
     #[Route('/api/books/{id}', name: 'api_books_delete', methods: ['DELETE'])]
-    public function deleteBook(Book $book, EntityManagerInterface $em): JsonResponse
-    {
+    #[IsGranted('ROLE_ADMIN', message: 'Vous n\'avez pas les droits suffisants pour supprimer un livre')]
+    public function deleteBook(
+        Book $book,
+        EntityManagerInterface $em,
+        TagAwareCacheInterface $cachePool
+    ): JsonResponse {
+        $cachePool->invalidateTags(["booksCache"]);
+
         $em->remove($book);
         $em->flush();
 
