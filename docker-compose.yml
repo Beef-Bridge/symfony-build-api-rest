@@ -1,45 +1,67 @@
-version: '3'
+version: '3.8'
+
+name: "formationOpenclassrooms"
 
 services:
-  db:
-    image: mysql
-    container_name: db_sf_api_rest
+  svc_mysql:
+    container_name: 'foc_db_mysql'
     restart: always
+    #image: mysql:8.0.32
+    build: ./docker/mysql
     volumes:
-      - db-data:/var/lib/mysql
+      - foc_db_data:/var/lib/mysql
     environment:
       MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
     networks:
-      - dev
+      - foc_vlan
 
-  phpmyadmin:
-    image: phpmyadmin
-    container_name: pma_sf_api_rest
-    restart: always
+  svc_php_fpm:
+    container_name: 'foc_php_fpm'
+    restart: 'always'
+    build: ./docker/php
     depends_on:
-      - db
-    ports:
-      - 8083:80
-    environment:
-      PMA_HOST: db
-    networks:
-      - dev
-    
-  www:
-    build: docker
-    container_name: www_sf_api_rest
-    restart: always
-    ports:
-      - 8003:80
+      - svc_mysql
+    links:
+      - 'svc_mysql'
+    working_dir: /var/www
     volumes:
-      - ./docker/vhosts:/etc/apache2/sites-enabled
-      - ./docker/configs/php.ini:/usr/local/etc/php/php.ini
       - ./project:/var/www
     networks:
-      - dev
+      - foc_vlan
 
-networks:
-  dev:
+  svc_nginx:
+    container_name: 'foc_nginx'
+    restart: 'always'
+    build: ./docker/nginx
+    depends_on:
+      - svc_php_fpm
+    links:
+      - 'svc_php_fpm'
+    working_dir: /var/www
+    volumes:
+      - ./project:/var/www
+    networks:
+      - foc_vlan
+    ports:
+      - "8003:80"
+
+  svc_pma:
+    container_name: 'foc_pma'
+    restart: always
+    image: phpmyadmin:latest
+    depends_on:
+      - svc_mysql
+    ports:
+      - "8083:80"
+    environment:
+      PMA_HOST: svc_mysql
+    networks:
+      - foc_vlan
 
 volumes:
-  db-data:
+  foc_db_data:
+
+networks:
+  foc_vlan:
+    name: foc_vlan
+    external: false

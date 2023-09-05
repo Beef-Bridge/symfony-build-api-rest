@@ -15,7 +15,7 @@ DOCKER        = docker
 DOCKER_COMP   = docker-compose
 
 # Conteneurs
-APP_CONTAINER  = www_sf_api_rest
+APP_CONTAINER  = foc_php_fpm
 
 # Alias
 SYMFONY       = $(EXEC_PHP) bin/console
