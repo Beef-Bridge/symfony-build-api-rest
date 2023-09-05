@@ -59,6 +59,7 @@ class AuthorController extends AbstractController
      * @throws InvalidArgumentException
      */
     #[Route('/api/authors/{id}', name: 'api_authors_delete', methods: ['DELETE'])]
+    #[IsGranted('ROLE_ADMIN', message: 'Vous n\'avez pas les droits suffisants pour supprimer un auteur')]
     public function deleteBook(
         Author $author,
         EntityManagerInterface $em,
