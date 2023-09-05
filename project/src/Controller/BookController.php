@@ -6,6 +6,7 @@ use App\Entity\Book;
 use App\Repository\BookRepository;
 use App\Repository\AuthorRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Cache\InvalidArgumentException;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
@@ -16,18 +17,30 @@ use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Contracts\Cache\ItemInterface;
+use Symfony\Contracts\Cache\TagAwareCacheInterface;
 
 class BookController extends AbstractController
 {
+    /**
+     * @throws InvalidArgumentException
+     */
     #[Route('/api/books', name: 'api_books_get', methods: ['GET'])]
     public function getBookList(
         BookRepository $bookRepository,
         SerializerInterface $serializer,
-        Request $request
+        Request $request,
+        TagAwareCacheInterface $cachePool
     ): JsonResponse {
         $page = $request->get('page', 1);
         $limit = $request->get('limit', 3);
-        $bookList = $bookRepository->findAllWithPagination($page, $limit);
+
+        $idCache = "getAllBooks-" . $page . "-" . $limit;
+        $bookList = $cachePool->get($idCache, function (ItemInterface $item) use ($bookRepository, $page, $limit) {
+            $item->tag("booksCache");
+            return $bookRepository->findAllWithPagination($page, $limit);
+        });
+
         $jsonBookList = $serializer->serialize($bookList, 'json', ['groups' => 'getBooks']);
         return new JsonResponse($jsonBookList, Response::HTTP_OK, [], true);
     }
