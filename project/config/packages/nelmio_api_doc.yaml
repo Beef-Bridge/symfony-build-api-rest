@@ -19,6 +19,51 @@ nelmio_api_doc:
               - "8004"
               - "8005"
             default: "8003"
+    components:
+      securitySchemes:
+        Bearer:
+          type: http
+          scheme: bearer
+          bearerFormat: JWT
+      schemas:
+        Token:
+          type: object
+          properties:
+            token:
+              type: string
+              readOnly: true
+        Credentials:
+          type: object
+          properties:
+            username:
+              type: string
+              default: admin@bookapi.com
+            password:
+              type: string
+              default: password
+        Error:
+          type: object
+          properties:
+            code:
+              type: integer
+            message:
+              type: string
+      responses:
+        UnauthorizedError:
+          description: "Bad credentials"
+          content:
+            application/json:
+              schema:
+                allOf: [$ref: "#/components/schemas/Error"]
+        JwtTokenInvalid:
+          description: "JWT Token invalid, expired or not found"
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Error"
+    security:
+      - Bearer: []
     paths:
       /api/login_check:
         post:
@@ -39,30 +84,8 @@ nelmio_api_doc:
                 application/json:
                   schema:
                     $ref: "#/components/schemas/Token"
-    components:
-      schemas:
-        Token:
-          type: object
-          properties:
-            token:
-              type: string
-              readOnly: true
-        Credentials:
-          type: object
-          properties:
-            username:
-              type: string
-              default: admin@bookapi.com
-            password:
-              type: string
-              default: password
-      securitySchemes:
-        bearerAuth:
-          type: apiKey
-          in: header
-          name: Authorization
-    security:
-      - bearerAuth: []
+            "401":
+              $ref: "#/components/responses/UnauthorizedError"
   areas: # to filter documented areas
     path_patterns:
       - ^/api(?!/doc$) # Accepts routes under /api except /api/doc
