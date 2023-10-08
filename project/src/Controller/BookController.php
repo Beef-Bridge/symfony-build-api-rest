@@ -6,6 +6,9 @@ use App\Entity\Book;
 use App\Repository\BookRepository;
 use App\Repository\AuthorRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use Nelmio\ApiDocBundle\Annotation\Model;
+use Nelmio\ApiDocBundle\Annotation\Security;
+use OpenApi\Attributes as OAT;
 use Psr\Cache\InvalidArgumentException;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -20,12 +23,55 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Contracts\Cache\ItemInterface;
 use Symfony\Contracts\Cache\TagAwareCacheInterface;
 
+#[OAT\Tag(name: 'books')]
 class BookController extends AbstractController
 {
     /**
      * @throws InvalidArgumentException
      */
     #[Route('/api/books', name: 'api_books_get', methods: ['GET'])]
+    #[OAT\Get(
+        path: "/api/books",
+        summary: "Liste des livres",
+        description: "Retourne la liste de tous les livres sans distinction",
+        operationId: "getBookList"
+    )]
+    #[OAT\Parameter(
+        name: "authorization",
+        in: "header",
+        required: true,
+        description: "Authorization",
+        schema: new OAT\Schema(type: "string", default: "Bearer TOKEN")
+    )]
+    #[OAT\Parameter(
+        name: "page",
+        in: "query",
+        description: "La page que l'on veut récupérer",
+        schema: new OAT\Schema(type: "int")
+    )]
+    #[OAT\Parameter(
+        name: "limit",
+        in: "query",
+        description: "Le nombre d'éléments que l'on veut récupérer",
+        schema: new OAT\Schema(type: "int")
+    )]
+    #[OAT\Response(
+        response: Response::HTTP_OK,
+        description: 'OK',
+        content: new OAT\JsonContent(
+            type: 'array',
+            items: new OAT\Items(ref: new Model(type: Book::class))
+        )
+    )]
+    #[OAT\Response(
+        response: Response::HTTP_UNAUTHORIZED,
+        description: 'Requires authentication'
+    )]
+    #[OAT\Response(
+        response: Response::HTTP_FORBIDDEN,
+        description: 'Forbidden'
+    )]
+    #[Security(name: "Bearer")]
     public function getBookList(
         BookRepository $bookRepository,
         SerializerInterface $serializer,
@@ -42,12 +88,43 @@ class BookController extends AbstractController
                 $item->tag("booksCache");
                 $bookList = $bookRepository->findAllWithPagination($page, $limit);
                 return $serializer->serialize($bookList, 'json', ['groups' => 'getBooks']);
-            });
+            }
+        );
 
         return new JsonResponse($jsonBookList, Response::HTTP_OK, [], true);
     }
 
     #[Route('/api/books/{id}', name: 'api_detail_book_get', methods: ['GET'])]
+    #[OAT\Get(
+        path: "/api/books/{id}",
+        summary: "Détails d'un livre",
+        description: "Retourne les détails d'un livre",
+        operationId: "getDetailBook"
+    )]
+    #[OAT\Parameter(
+        name: "id",
+        in: "path",
+        required: true,
+        description: "Identifiant d'un livre",
+        schema: new OAT\Schema(type: "int")
+    )]
+    #[OAT\Response(
+        response: Response::HTTP_OK,
+        description: 'OK',
+        content: new OAT\JsonContent(
+            type: 'array',
+            items: new OAT\Items(ref: new Model(type: Book::class))
+        )
+    )]
+    #[OAT\Response(
+        response: Response::HTTP_FORBIDDEN,
+        description: 'Forbidden'
+    )]
+    #[OAT\Response(
+        response: Response::HTTP_NOT_FOUND,
+        description: 'Resource not found'
+    )]
+    #[Security(name: "Bearer")]
     public function getDetailBook(
         Book $book,
         SerializerInterface $serializer
@@ -61,6 +138,32 @@ class BookController extends AbstractController
      */
     #[Route('/api/books/{id}', name: 'api_books_delete', methods: ['DELETE'])]
     #[IsGranted('ROLE_ADMIN', message: 'Vous n\'avez pas les droits suffisants pour supprimer un livre')]
+    #[OAT\Delete(
+        path: "/api/books/{id}",
+        summary: "Suppression d'un livre",
+        description: "Supprimer un livre",
+        operationId: "deleteBook"
+    )]
+    #[OAT\Parameter(
+        name: "id",
+        in: "path",
+        required: true,
+        description: "Identifiant d'un livre",
+        schema: new OAT\Schema(type: "int")
+    )]
+    #[OAT\Response(
+        response: Response::HTTP_NO_CONTENT,
+        description: 'No Content'
+    )]
+    #[OAT\Response(
+        response: Response::HTTP_FORBIDDEN,
+        description: 'Forbidden'
+    )]
+    #[OAT\Response(
+        response: Response::HTTP_NOT_FOUND,
+        description: 'Resource not found'
+    )]
+    #[Security(name: "Bearer")]
     public function deleteBook(
         Book $book,
         EntityManagerInterface $em,
@@ -76,6 +179,25 @@ class BookController extends AbstractController
 
     #[Route('/api/books', name:"api_books_post", methods: ['POST'])]
     #[IsGranted('ROLE_ADMIN', message: 'Vous n\'avez pas les droits suffisants pour créer un livre')]
+    #[OAT\Post(
+        path: "/api/books",
+        summary: "Création d'un livre",
+        description: "Créer un livre",
+        operationId: "createBook"
+    )]
+    #[OAT\Response(
+        response: Response::HTTP_CREATED,
+        description: 'Created',
+        content: new OAT\JsonContent(
+            type: 'array',
+            items: new OAT\Items(ref: new Model(type: Book::class))
+        )
+    )]
+    #[OAT\Response(
+        response: Response::HTTP_FORBIDDEN,
+        description: 'Forbidden'
+    )]
+    #[Security(name: "Bearer")]
     public function createBook(
         Request $request,
         SerializerInterface $serializer,
@@ -127,6 +249,36 @@ class BookController extends AbstractController
     }
 
     #[Route('/api/books/{id}', name:"api_books_put", methods:['PUT'])]
+    #[OAT\Put(
+        path: "/api/books/{id}",
+        summary: "Mise à jour d'un livre",
+        description: "Mettre à jour un livre",
+        operationId: "updateBook"
+    )]
+    #[OAT\Parameter(
+        name: "id",
+        in: "path",
+        required: true,
+        description: "Identifiant d'un livre",
+        schema: new OAT\Schema(type: "int")
+    )]
+    #[OAT\Response(
+        response: Response::HTTP_OK,
+        description: 'OK',
+        content: new OAT\JsonContent(
+            type: 'array',
+            items: new OAT\Items(ref: new Model(type: Book::class))
+        )
+    )]
+    #[OAT\Response(
+        response: Response::HTTP_FORBIDDEN,
+        description: 'Forbidden'
+    )]
+    #[OAT\Response(
+        response: Response::HTTP_NOT_FOUND,
+        description: 'Resource not found'
+    )]
+    #[Security(name: "Bearer")]
     public function updateBook(
         Request $request,
         SerializerInterface $serializer,
