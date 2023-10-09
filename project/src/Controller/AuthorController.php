@@ -96,7 +96,7 @@ class AuthorController extends AbstractController
         path: "/api/authors/{id}",
         summary: "Détails d'un auteur",
         description: "Retourne les détails d'un auteur",
-        operationId: "getDetailBook"
+        operationId: "getDetailAuthor"
     )]
     #[OAT\Parameter(
         name: "id",
@@ -122,7 +122,7 @@ class AuthorController extends AbstractController
         description: 'Resource not found'
     )]
     #[Security(name: "Bearer")]
-    public function getDetailBook(
+    public function getDetailAuthor(
         Author $author,
         SerializerInterface $serializer
     ): JsonResponse {
@@ -139,7 +139,7 @@ class AuthorController extends AbstractController
         path: "/api/authors/{id}",
         summary: "Suppression d'un auteur",
         description: "Supprimer un auteur",
-        operationId: "deleteBook"
+        operationId: "deleteAuthor"
     )]
     #[OAT\Parameter(
         name: "id",
@@ -161,7 +161,7 @@ class AuthorController extends AbstractController
         description: 'Resource not found'
     )]
     #[Security(name: "Bearer")]
-    public function deleteBook(
+    public function deleteAuthor(
         Author $author,
         EntityManagerInterface $em,
         TagAwareCacheInterface $cache
